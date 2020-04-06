@@ -9,7 +9,6 @@ namespace TobyMeehan.Http
     {
         public static void Init(this HttpClient client)
         {
-            client.BaseAddress = new Uri("");
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
         }
