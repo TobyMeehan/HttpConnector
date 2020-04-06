@@ -1,6 +1,8 @@
 # HttpConnector
 Simple library which enables API calls to be made in one coherent method call.
 
+[![nuget](https://img.shields.io/nuget/v/TobyMeehan.Http)](https://www.nuget.org/packages/TobyMeehan.Http/)
+
 ## Usage
 The library acts as a wrapper around [HttpClient](https://docs.microsoft.com/en-us/dotnet/api/system.net.http.httpclient), and as such one needs to be instatiated to use it. As per the documentation, there should only be one instance per application. If you are using dependency injection, add a singleton or scoped. Otherwise create a static class with an HttpClient property.
 
