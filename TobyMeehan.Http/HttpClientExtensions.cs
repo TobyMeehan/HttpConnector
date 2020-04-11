@@ -7,12 +7,6 @@ namespace TobyMeehan.Http
 {
     public static class HttpClientExtensions
     {
-        public static void Init(this HttpClient client)
-        {
-            client.DefaultRequestHeaders.Accept.Clear();
-            client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-        }
-
         public static IHttpRequest Get(this HttpClient client, string uri)
         {
             return new GetHttpRequest(client, uri);
