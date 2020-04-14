@@ -1,27 +1,26 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace TobyMeehan.Http
 {
-    class OkHttpResponseHandler<T> : IHttpResponseHandler
+    class UnconditionalHttpResponseHandler<T> : IHttpResponseHandler
     {
-        public OkHttpResponseHandler(Action<T> handler)
+        public UnconditionalHttpResponseHandler(Action<T, HttpStatusCode> action)
         {
-            _handler = handler;
+            _handler = action;
         }
 
-        private Action<T> _handler;
+        private Action<T, HttpStatusCode> _handler;
 
         public async Task Handle(HttpResponseMessage response)
         {
-            response.EnsureSuccessStatusCode();
-
             T item = JsonConvert.DeserializeObject<T>(await response.Content.ReadAsStringAsync());
-            _handler(item);
+            _handler(item, response.StatusCode);
         }
     }
 }

@@ -10,6 +10,7 @@ namespace TobyMeehan.Http
     {
         IHttpRequest OnOK<T>(Action<T> action);
         IHttpRequest OnBadRequest<T>(Action<T, HttpStatusCode, string> action);
+        IHttpRequest Always<T>(Action<T, HttpStatusCode> action);
         Task SendAsync();
     }
 }

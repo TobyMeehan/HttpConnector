@@ -20,10 +20,16 @@ namespace TobyMeehan.Http
 
         protected IHttpResponseHandler OkResponseHandler;
         protected IHttpResponseHandler BadRequestResponseHandler;
+        protected IHttpResponseHandler UnconditionalResponseHandler;
         protected Dictionary<HttpStatusCode, IHttpResponseHandler> GenericResponseHandlers = new Dictionary<HttpStatusCode, IHttpResponseHandler>();
 
         protected async Task HandleResponse(HttpResponseMessage response)
         {
+            if (UnconditionalResponseHandler != null)
+            {
+                await UnconditionalResponseHandler.Handle(response);
+            }
+
             if (GenericResponseHandlers.ContainsKey(response.StatusCode))
             {
                 await GenericResponseHandlers[response.StatusCode].Handle(response);
@@ -53,6 +59,12 @@ namespace TobyMeehan.Http
         public IHttpRequest OnBadRequest<T>(Action<T, HttpStatusCode, string> action)
         {
             BadRequestResponseHandler = new BadRequestHttpResponseHandler<T>(action);
+            return this;
+        }
+
+        public IHttpRequest Always<T>(Action<T, HttpStatusCode> action)
+        {
+            UnconditionalResponseHandler = new UnconditionalHttpResponseHandler<T>(action);
             return this;
         }
 
