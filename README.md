@@ -8,9 +8,7 @@ The library acts as a wrapper around [HttpClient](https://docs.microsoft.com/en-
 
 ### Using Dependency Injection
 ```cs
-HttpClient client = new HttpClient();
-client.Init();
-services.AddSingleton(client);
+services.AddSingleton<HttpClient>();
 ```
 
 ### Without Dependency Injection
@@ -20,25 +18,18 @@ public static class ClassName
     public static HttpClient Client { get; set; } = new HttpClient();
 }
 ```
-```cs
-class Program
-{
-    static void Main(string[] args)
-    {
-        Client.Init();
-    }
-}
-```
 
-Calling an API endpoint is, for the most part, universal for all protocols. There are differences, for example a POST request might accompany data, whereas GET would not. The BadRequest referred to by the OnBadRequest method is a catchall for any status code that does not indicate success, not specifically the Bad Request status code. The actual status code received is included as a parameter for the response handler, along with the reason phrase, if there is one.
+### Basic Structure
+
+The basic structure for sending requests is below, demonstrated with GET and POST. There is a handler for a success and non-success status code.
 
 ```cs
 await Client.Get("https://api.example.com/endpoint")
-    .OnBadRequest<BadRequestType>((result, statusCode, reasonPhrase) =>
+    .OnBadRequest<T>((result, statusCode, reasonPhrase) =>
     {
         // do something
     })
-    .OnOK<OKType>((result) =>
+    .OnOK<U>((result) =>
     {
         // do something
     })
@@ -49,11 +40,11 @@ await Client.Get("https://api.example.com/endpoint")
 Data data = GetData();
 
 await Client.Post("https://api.example.com/endpoint", data)
-    .OnBadRequest<BadRequestType>((result, statusCode, reasonPhrase) =>
+    .OnBadRequest<T>((result, statusCode, reasonPhrase) =>
     {
         // do something
     })
-    .OnOK<OKType>((result) =>
+    .OnOK<U>((result) =>
     {
         // do something
     })
@@ -62,4 +53,51 @@ await Client.Post("https://api.example.com/endpoint", data)
 
 DELETE and PUT follow the same structure as GET and POST respectively. I included a type parameter in the handler for BadRequest in case of a situation where some data structure accompanies non-success response. If this is not the case, as in the example project use `object` or `dynamic` as the type and ignore the parameter.
 
-Included with the repo is an example console application which uses the library to make a GET request to the [sunrise-sunset.org](https://sunrise-sunset.org/api) API, using the example URLs they provide.
+
+### Sending Custom HttpContent
+
+There are additional request types for PUT and POST, for cases where a custom HttpContent needs to be sent, rather than have an object serialised to JSON.
+
+```cs
+HttpContent content = GetHttpContent();
+
+Client.PostHttpContent("https://api.example.com/endpoint", content)
+    ...
+    
+Client.PutHttpContent("https://api.example.com/endpoint", content)
+    ...
+```
+
+### Generic Response Handlers
+
+Sometimes specific actions are needed to handle specific status codes. The default OnOK and OnBadRequest methods cover all success and non-success status codes, so the generic `On` method can be used to assign a handler to a status code.
+
+```cs
+await Client.Get("https://api.example.com/endpoint")
+    .On<T>(HttpStatusCode.Forbidden, (result) =>
+    {
+        // do something
+    }
+    .On<U>(HttpStatusCode.NotFound, (result) =>
+    {
+        // do something else
+    }
+```
+
+Multiple generic handlers can be added for different status codes in every request.
+
+### Unconditional Response Handlers
+
+For situations where a task always needs to be completed regardless of the state of the response, unconditional handlers can be added to a request, and will always run when a response is received. The unconditional handler is run before any conditional handlers. The `Always` method adds an unconditional handler to a request.
+
+```cs
+await Client.Get("https://api.example.com/endpoint")
+    .Always<T>((result, statusCode) =>
+    {
+        // do something
+    }
+```
+
+Each request only supports a single unconditional handler, if `Always` is called multiple times, the handler will be overwritten.
+
+Included with the repo is an example console application which uses the library to call each endpoint at http://dummy.restapiexample.com/, and demonstrates the uses of different requests and response handlers.
