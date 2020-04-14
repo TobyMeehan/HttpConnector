@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
@@ -17,7 +18,9 @@ namespace TobyMeehan.Http
 
         public override async Task SendAsync()
         {
-            HttpResponseMessage response = await Client.PutAsJsonAsync(Uri, Data);
+            HttpContent content = new StringContent(JsonConvert.SerializeObject(Data), Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response = await Client.PutAsync(Uri, content);
 
             await HandleResponse(response);
         }

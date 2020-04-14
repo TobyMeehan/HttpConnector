@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
@@ -17,7 +18,7 @@ namespace TobyMeehan.Http
 
         public async Task Handle(HttpResponseMessage response)
         {
-            T item = await response.Content.ReadAsAsync<T>();
+            T item = JsonConvert.DeserializeObject<T>(await response.Content.ReadAsStringAsync());
             _handler(item);
         }
     }
