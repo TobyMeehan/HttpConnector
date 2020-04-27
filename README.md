@@ -19,85 +19,98 @@ public static class ClassName
 }
 ```
 
-### Basic Structure
+### Sending a Request
 
-The basic structure for sending requests is below, demonstrated with GET and POST. There is a handler for a success and non-success status code.
+The library extends `HttpClient` with methods for GET, POST, PUT and DELETE, in the form `HttpClient.[Protocol]`. This creates an `IHttpRequest` object representing the request. POST and PUT have an additional parameter for data to send with the request. The `SendAsync` method sends the request.
+
+```cs
+await Client.Get("https://api.example.com/endpoint").SendAsync();
+
+await Client.Post("https://api.example.com/endpoint", data).SendAsync();
+```
+
+By default, the library serializes the data to JSON and attaches it as `JsonContent`. If you need to send custom `HttpContent`, for example attaching files, you can use the `[Protocol]HttpContent` methods.
+
+```cs
+await Client.PostHttpContent("https://api.example.com/endpoint", httpContent).SendAsync();
+
+await Client.PutHttpContent("https://api.example.com/endpoint", httpContent).SendAsync();
+```
+
+### Response Handlers
+
+`IHttpRequest` allows you to attach response handlers; delegates which are invoked for different response status codes. For basic success and non-success responses, use the `OnOK` and `OnBadRequest` handlers. These cover all status codes which indicate success or otherwise.
 
 ```cs
 await Client.Get("https://api.example.com/endpoint")
-    .OnBadRequest<T>((result, statusCode, reasonPhrase) =>
+    .OnOK(() => 
     {
         // do something
     })
-    .OnOK<U>((result) =>
-    {
-        // do something
-    })
-    .SendAsync();
-```
-
-```cs
-Data data = GetData();
-
-await Client.Post("https://api.example.com/endpoint", data)
-    .OnBadRequest<T>((result, statusCode, reasonPhrase) =>
-    {
-        // do something
-    })
-    .OnOK<U>((result) =>
-    {
-        // do something
-    })
-    .SendAsync();
-```
-
-DELETE and PUT follow the same structure as GET and POST respectively. I included a type parameter in the handler for BadRequest in case of a situation where some data structure accompanies non-success response. If this is not the case, as in the example project use `object` or `dynamic` as the type and ignore the parameter.
-
-
-### Sending Custom HttpContent
-
-There are additional request types for PUT and POST, for cases where a custom HttpContent needs to be sent, rather than have an object serialised to JSON.
-
-```cs
-HttpContent content = GetHttpContent();
-
-Client.PostHttpContent("https://api.example.com/endpoint", content)
-    ...
-    
-Client.PutHttpContent("https://api.example.com/endpoint", content)
-    ...
-```
-
-### Generic Response Handlers
-
-Sometimes specific actions are needed to handle specific status codes. The default OnOK and OnBadRequest methods cover all success and non-success status codes, so the generic `On` method can be used to assign a handler to a status code.
-
-```cs
-await Client.Get("https://api.example.com/endpoint")
-    .On<T>(HttpStatusCode.Forbidden, (result) =>
-    {
-        // do something
-    }
-    .On<U>(HttpStatusCode.NotFound, (result) =>
+    .OnBadRequest(() => 
     {
         // do something else
-    }
+    })
+    .SendAsync();
 ```
 
-Multiple generic handlers can be added for different status codes in every request.
-
-### Unconditional Response Handlers
-
-For situations where a task always needs to be completed regardless of the state of the response, unconditional handlers can be added to a request, and will always run when a response is received. The unconditional handler is run before any conditional handlers. The `Always` method adds an unconditional handler to a request.
+If you need to handle a specific status code, you can use generic response handlers, which are invoked for their specified status code.
 
 ```cs
 await Client.Get("https://api.example.com/endpoint")
-    .Always<T>((result, statusCode) =>
+    .On(HttpStatusCode.Forbidden, () =>
     {
         // do something
-    }
+    })
+    .On(HttpStatusCode.NotFound, () => 
+    {
+        // do something else
+    })
+    .SendAsync();
 ```
 
-Each request only supports a single unconditional handler, if `Always` is called multiple times, the handler will be overwritten.
+Unconditional handlers can be used if you need something to happen regardless of the status code.
+
+```cs
+await Client.Get("https://api.example.com/endpoint")
+    .Always(() =>
+    {
+        // do something
+    })
+    .SendAsync();
+```
+
+#### Reading the Response
+
+Response handlers can accept a generic type parameter, to which any JSON in the response will be deserialized.
+
+```cs
+await Client.Get("https://api.example.com/endpoint")
+    .OnOK<T>((response) =>
+    {
+        Foo(response.Property);
+    })
+    .OnBadRequest<U>((response) =>
+    {
+        Bar(response.DifferentProperty);
+    })
+    .SendAsync();
+```
+
+If you need the status code of the response, you can include a status code parameter in the handler delegate.
+
+```cs
+await Client.Get("https://api.example.com/endpoint")
+    .OnOK<T>((response, statusCode) =>
+    {
+        Foo(response);
+        Bar(statusCode);
+    })
+    .OnBadRequest((statusCode) =>
+    {
+        Bar(statusCode);
+    })
+    .SendAsync();
+```
 
 Included with the repo is an example console application which uses the library to call each endpoint at http://dummy.restapiexample.com/, and demonstrates the uses of different requests and response handlers.
